@@ -13,7 +13,7 @@ public class Yintroduced extends Ychange {
 
 	private static final Logger log = LoggerFactory.getLogger(Yintroduced.class);
 
-	private Yfunction newFunction;
+	public Yfunction newFunction;
 
 	protected String diffString;
 
@@ -46,7 +46,7 @@ public class Yintroduced extends Ychange {
 		return obj;
 	}
 
-	private String getDiffAsString() {
+	public String getDiffAsString() {
 		if (this.diffString == null) {
 			try {
 				this.diffString = this.getDiffAsString("", newFunction.getSourceFragment());

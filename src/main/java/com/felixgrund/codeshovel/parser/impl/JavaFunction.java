@@ -15,8 +15,7 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 import com.github.javaparser.ast.type.ReferenceType;
-import com.github.javaparser.printer.PrettyPrinter;
-import com.github.javaparser.printer.PrettyPrinterConfiguration;
+import com.github.javaparser.printer.configuration.PrettyPrinterConfiguration;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import org.apache.commons.lang3.StringUtils;
 
@@ -48,7 +47,7 @@ public class JavaFunction extends AbstractFunction<MethodDeclaration> implements
 		String ret = null;
 		List<String> modifiers = new ArrayList<String>();
 		for (Modifier modifier : parameterElement.getModifiers()) {
-			modifiers.add(modifier.asString());
+			modifiers.add(modifier.getKeyword().asString());
 		}
 		if (modifiers.size() > 0) {
 			ret = StringUtils.join(modifiers, "-");
@@ -82,7 +81,7 @@ public class JavaFunction extends AbstractFunction<MethodDeclaration> implements
 	protected Ymodifiers getInitialModifiers(MethodDeclaration method) {
 		List<String> modifiers = new ArrayList<>();
 		for (Modifier modifier : method.getModifiers()) {
-			modifiers.add(modifier.asString());
+			modifiers.add(modifier.getKeyword().asString());
 		}
 		return new Ymodifiers(modifiers);
 	}

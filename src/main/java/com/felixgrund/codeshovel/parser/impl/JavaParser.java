@@ -3,12 +3,14 @@ package com.felixgrund.codeshovel.parser.impl;
 import com.felixgrund.codeshovel.changes.*;
 import com.felixgrund.codeshovel.entities.Ycommit;
 import com.felixgrund.codeshovel.exceptions.ParseException;
+import com.felixgrund.codeshovel.execution.ShovelExecution;
 import com.felixgrund.codeshovel.parser.AbstractParser;
 import com.felixgrund.codeshovel.parser.Yfunction;
 import com.felixgrund.codeshovel.parser.Yparser;
 import com.felixgrund.codeshovel.util.Utl;
 import com.felixgrund.codeshovel.wrappers.Commit;
 import com.felixgrund.codeshovel.wrappers.StartEnvironment;
+import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
@@ -34,9 +36,9 @@ public class JavaParser extends AbstractParser implements Yparser {
 //			if (rootCompilationUnit == null) {
 //				throw new ParseException("Could not parseMethods root compilation unit.", this.filePath, this.fileContent);
 //			}
-            CompilationUnit rootCompilationUnit = null;
+            ParseResult<CompilationUnit> rootCompilationUnit = null;
             try {
-                rootCompilationUnit = com.github.javaparser.JavaParser.parse(this.fileContent);
+                rootCompilationUnit = ShovelExecution.parser.parse(this.fileContent);
             } catch (Exception e) {
                 return new ArrayList<>();
             }
@@ -46,7 +48,11 @@ public class JavaParser extends AbstractParser implements Yparser {
                     return method.getBody() != null;
                 }
             };
-            rootCompilationUnit.accept(visitor, null);
+            if (rootCompilationUnit.isSuccessful()) {
+                rootCompilationUnit.getResult().get().accept(visitor, null);
+            } else {
+                return new ArrayList<>();
+            }
             return visitor.getMatchedNodes();
         } catch (Exception e) {
             System.err.println("JavaParser::parseMethods() - parse error. path: " + this.filePath + "; content:\n" + this.fileContent);

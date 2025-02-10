@@ -149,7 +149,7 @@ public abstract class Ycomparefunctionchange extends Ychange {
 		return commitsBetweenForFile;
 	}
 
-	private String getDiffAsString() {
+	public String getDiffAsString() {
 		if (this.diffString == null) {
 			String sourceOldString = oldFunction.getSourceFragment();
 			String sourceNewString = newFunction.getSourceFragment();

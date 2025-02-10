@@ -1,6 +1,6 @@
 ## Code Shovel Development
 
-#### Note: most users will not need to consider any of the below details and should refer to [README.md](README.md).
+#### Note: most users will not need to consider any of the below details and should refer to [README.md](Codeshovel_README).
 
 While the vast majority of users will use the Web Service UI, Web Service REST, or Command Line interfaces, if you want to build CodeShovel yourself (for instance if you are doing development), you can follow the instructions below.
 

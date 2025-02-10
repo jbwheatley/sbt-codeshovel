@@ -13,11 +13,14 @@ import com.felixgrund.codeshovel.util.ParserFactory;
 import com.felixgrund.codeshovel.util.Utl;
 import com.felixgrund.codeshovel.wrappers.GlobalEnv;
 import com.felixgrund.codeshovel.wrappers.StartEnvironment;
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sbt.codeshovel.HtmlWriter;
 
+import java.nio.file.Path;
 import java.util.*;
 
 public class ShovelExecution {
@@ -25,10 +28,10 @@ public class ShovelExecution {
 	private static long duration;
 
 	private static final Logger log = LoggerFactory.getLogger(ShovelExecution.class);
-	static {
-		com.github.javaparser.JavaParser.setStaticConfiguration(
+	public static final JavaParser parser =
+		new com.github.javaparser.JavaParser(
 				new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.RAW));
-	}
+
 
 	public static Yresult runMining(StartEnvironment startEnv, String acceptedFileExtension) throws Exception {
 		// We stopped gathering results for mining executions in heap space (which was crazy anyways).
@@ -128,8 +131,10 @@ public class ShovelExecution {
 		if (!GlobalEnv.DISABLE_ALL_OUTPUTS) {
 			if (StringUtils.isNotBlank(startEnv.getOutputFilePath())) {
 				Utl.writeShovelResultFile(jsonResultCodeshovel, startEnv.getOutputFilePath());
+				HtmlWriter.write(jsonResultCodeshovel, Path.of(startEnv.getOutputFilePath().replace(".json", ".html")));
 			} else if (GlobalEnv.WRITE_RESULTS) {
 				Utl.writeShovelResultFile(jsonResultCodeshovel);
+				HtmlWriter.write(jsonResultCodeshovel, Path.of(startEnv.getOutputFilePath().replace(".json", ".html")));
 			}
 
 			if (GlobalEnv.WRITE_ORACLES) {

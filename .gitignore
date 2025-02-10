@@ -25,3 +25,4 @@ src/main/java/*ParseTree
 
 # Misc
 .DS_Store
+/.bsp/
