@@ -28,16 +28,16 @@ Start an sbt shell in the root of your repo, and run the following:
 shovel ${path/to/the/file.scala} ${functionName} ${lineNumber} ${commit}
 ```
 
-For example, to run against [this function](https://github.com/jbwheatley/pact4s/blob/10b907e625f4057b1202567096f95079f0999895/shared/src/main/scala/pact4s/TimeLimiter.scala#L24) in pact4s starting from the HEAD commit: 
+For example, to run against [this function](https://github.com/jbwheatley/pact4s/blob/10b907e625f4057b1202567096f95079f0999895/shared/src/main/scala/pact4s/StateChanger.scala#L68) in pact4s starting from the HEAD commit: 
 
 ```bash
-shovel shared/src/main/scala/pact4s/TimeLimiter.scala callWithTimeout 24 HEAD
+shovel shared/src/main/scala/pact4s/StateChanger.scala handle 68 HEAD
 ```
 
 `sbt-codeshovel` also works for `java`, `js` and `ts` files. 
 
-A `.html` file will then be produced and placed in the `/target` directory (e.g. `/target/shovel-callWithTimeout-24-HEAD.html`). Opening this in your 
-browser will allow you to browse the git history for the supplied method. 
+A `.html` file will then be produced and placed in the `/target` directory (e.g. `/target/shovel-handle-68-HEAD.html`). Opening this in your 
+browser will allow you to browse the git history for the supplied method. [Check the example here.](./doc/example.html)
 
 
 ## Background

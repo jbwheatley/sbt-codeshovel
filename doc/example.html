@@ -1,0 +1,746 @@
+<html><head><meta charset="utf-8" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/github.min.css" /><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" /><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html-ui.min.js"></script><style>
+    body {
+      font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+    }
+
+    table {
+      text-align: left;
+      position: relative;
+    }
+
+    th {
+      background: white;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      text-align: center;
+    }
+
+    #managerTable {
+      max-height: 90vh;
+      overflow: auto;
+    }
+
+    .datarow {
+      text-align: center;
+    }
+
+    .accordion {
+      background-color: #eee;
+      color: #444;
+      cursor: pointer;
+      padding: 18px;
+      width: 100%;
+      text-align: left;
+      border: none;
+      outline: none;
+      transition: 0.4s;
+    }
+
+    .active, .accordion:hover {
+      background-color: #ccc;
+    }
+
+    .panel {
+      padding: 0 18px;
+      background-color: white;
+      visibility: collapse;
+      overflow: hidden;
+    }
+
+    .accordion:after {
+      content: '\02795'; /* Unicode character for &quot;plus&quot; sign (+) */
+      font-size: 13px;
+      color: #777;
+      float: right;
+      margin-left: 5px;
+    }
+
+    .active:after {
+      content: &quot;\2796&quot;; /* Unicode character for &quot;minus&quot; sign (-) */
+    }
+
+</style></head><script>function addListener(element, diff) {
+  document.addEventListener('DOMContentLoaded', function () {
+    var targetElement = document.getElementById(element);
+    var configuration = {
+      drawFileList: false,
+      fileListToggle: false,
+      fileListStartVisible: false,
+      fileContentToggle: false,
+      matching: 'lines',
+      outputFormat: 'line-by-line',
+      synchronisedScroll: true,
+      highlight: true,
+      renderNothingWhenEmpty: false,
+      stickyFileHeaders: false,
+    };
+    var diff2htmlUi = new Diff2HtmlUI(targetElement, diff, configuration);
+    diff2htmlUi.draw();
+    diff2htmlUi.highlightCode();
+  });
+}
+
+const diff66b0acc = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index 66b0acc
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,22 +1,25 @@
+       def handle(t: HttpExchange): Unit = {
++        var responseBody = ""
+         Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+             .map(_.entrySet().asScala.map { kv =>
+               val key   = kv.getKey
+               val value = kv.getValue
+               val fixedValue = value.getValueType match {
+                 case JsonValue.ValueType.STRING => value.toString.init.tail
+                 case _                          => value.toString
+               }
+               key -> fixedValue
+             }.toMap)
+             .getOrElse(Map.empty)
++          // should return the params in the response body to be used with the generators
++          responseBody = "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}"
+           (obj.getString("state"), params)
+         }.toOption.map { case (s, ps) => ProviderState(s, ps) }.flatMap(stateChange.lift).getOrElse(())
+-        sendResponse(t)
++        sendResponse(t, responseBody)
+       }
+
+
+`;
+addListener('66b0acc', diff66b0acc);
+
+
+const diffcc02492 = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index cc02492
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,58 +1,47 @@
+       def handle(t: HttpExchange): Unit = {
+-        val stateAndResponse: Option[(String, Map[String, String], String)] = Try {
+-          val parser = Json.createParser(t.getRequestBody)
+-          parser.next()
+-          val obj                             = parser.getObject
+-          val maybeParams: Option[JsonObject] = Option(obj.getJsonObject("params"))
++        val stateAndResponse: Try[(String, Map[String, String], String)] = Try {
++          val obj: LinkedHashMap[String, Value]                 = read[ujson.Obj](t.getRequestBody).obj
++          val maybeParams: Option[LinkedHashMap[String, Value]] = obj.get("params").flatMap(_.objOpt)
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+-            .map(
+-              _.entrySet().asScala
+-                .map { kv =>
+-                  val key   = kv.getKey
+-                  val value = kv.getValue
+-                  val fixedValue = value.getValueType match {
+-                    case JsonValue.ValueType.STRING => value.toString.init.tail
+-                    case _                          => value.toString.replace("\"", "\\\"")
+-                  }
+-                  key -> fixedValue
+-                }
+-                .toMap
+-            )
+-            .getOrElse(Map.empty)
++            .map(_.toMap)
++            .map {
++              _.map { case (key, value) =>
++                key -> value.strOpt.getOrElse(value.toString())
++              }.toMap
++            }
++            .getOrElse(Map.empty[String, String])
+
+           // should return the params in the response body to be used with the generators
+-          val body = maybeParams
++          val body: String = maybeParams
+             .map { ps =>
+-              val os     = new ByteArrayOutputStream()
+-              val writer = Json.createWriter(os)
+-              writer.writeObject(ps)
+-              writer.close()
+-              os.toString
++              write(ujson.Obj.from(ps))
+             }
+             .getOrElse("{}")
+
+-          (obj.getString("state"), params, body)
+-        }.toOption
++          (obj.get("state").map(_.str).getOrElse(""), params, body)
++        }
+
+-        val stateChangeMaybeApplied = Try(stateAndResponse.foreach { case (s, ps, _) =>
+-          // Apply before hook
+-          stateChangeBeforeHook.apply()
+-          // Apply state change function
+-          stateChange
+-            .lift(ProviderState(s, ps))
+-            .getOrElse(
+-              pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
+-            )
+-        })
++        val stateChangeMaybeApplied = stateAndResponse.flatMap { case (s, ps, _) =>
++          Try {
++            // Apply before hook
++            stateChangeBeforeHook.apply()
++            // Apply state change function
++            stateChange
++              .lift(ProviderState(s, ps))
++              .getOrElse(
++                pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
++              )
++          }
++        }
+         stateChangeMaybeApplied match {
+           case Failure(exception) =>
+             pact4sLogger.error(exception)("State change application failed.")
+             sendResponse(t, "{}", 400)
+           case Success(_) =>
+             val responseBody: String = stateAndResponse
+               .map(_._3)
+               .getOrElse("{}")
+             sendResponse(t, responseBody, 200)
+         }
+       }
+
+
+`;
+addListener('cc02492', diffcc02492);
+
+
+const diffc13ea5c = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index c13ea5c
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,49 +1,47 @@
+       def handle(t: HttpExchange): Unit = {
+         val stateAndResponse: Option[(String, Map[String, String], String)] = Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+             .map(
+               _.entrySet().asScala
+                 .map { kv =>
+                   val key   = kv.getKey
+                   val value = kv.getValue
+                   val fixedValue = value.getValueType match {
+                     case JsonValue.ValueType.STRING => value.toString.init.tail
+                     case _                          => value.toString
+                   }
+                   key -> fixedValue
+                 }
+                 .toMap
+             )
+             .getOrElse(Map.empty)
+           // should return the params in the response body to be used with the generators
+           (obj.getString("state"), params, "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}")
+         }.toOption
+
+         val stateChangeMaybeApplied = Try(stateAndResponse.foreach { case (s, ps, _) =>
+           // Apply before hook
+           stateChangeBeforeHook.apply()
+           // Apply state change function
+           stateChange
+             .lift(ProviderState(s, ps))
+             .getOrElse(
+               pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
+             )
+-          // Apply after hook
+-          stateChangeAfterHook.apply()
+         })
+         stateChangeMaybeApplied match {
+           case Failure(exception) =>
+             pact4sLogger.error(exception)("State change application failed.")
+             sendResponse(t, "{}", 400)
+           case Success(_) =>
+             val responseBody: String = stateAndResponse
+               .map(_._3)
+               .getOrElse("{}")
+             sendResponse(t, responseBody, 200)
+         }
+       }
+
+
+`;
+addListener('c13ea5c', diffc13ea5c);
+
+
+const diff69c597d = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index 69c597d
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,47 +1,58 @@
+       def handle(t: HttpExchange): Unit = {
+         val stateAndResponse: Option[(String, Map[String, String], String)] = Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+-          val obj         = parser.getObject
+-          val maybeParams = Option(obj.getJsonObject("params"))
++          val obj                             = parser.getObject
++          val maybeParams: Option[JsonObject] = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+             .map(
+               _.entrySet().asScala
+                 .map { kv =>
+                   val key   = kv.getKey
+                   val value = kv.getValue
+                   val fixedValue = value.getValueType match {
+                     case JsonValue.ValueType.STRING => value.toString.init.tail
+-                    case _                          => value.toString
++                    case _                          => value.toString.replace("\"", "\\\"")
+                   }
+                   key -> fixedValue
+                 }
+                 .toMap
+             )
+             .getOrElse(Map.empty)
++
+           // should return the params in the response body to be used with the generators
+-          (obj.getString("state"), params, "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}")
++          val body = maybeParams
++            .map { ps =>
++              val os     = new ByteArrayOutputStream()
++              val writer = Json.createWriter(os)
++              writer.writeObject(ps)
++              writer.close()
++              os.toString
++            }
++            .getOrElse("{}")
++
++          (obj.getString("state"), params, body)
+         }.toOption
+
+         val stateChangeMaybeApplied = Try(stateAndResponse.foreach { case (s, ps, _) =>
+           // Apply before hook
+           stateChangeBeforeHook.apply()
+           // Apply state change function
+           stateChange
+             .lift(ProviderState(s, ps))
+             .getOrElse(
+               pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
+             )
+         })
+         stateChangeMaybeApplied match {
+           case Failure(exception) =>
+             pact4sLogger.error(exception)("State change application failed.")
+             sendResponse(t, "{}", 400)
+           case Success(_) =>
+             val responseBody: String = stateAndResponse
+               .map(_._3)
+               .getOrElse("{}")
+             sendResponse(t, responseBody, 200)
+         }
+       }
+
+
+`;
+addListener('69c597d', diff69c597d);
+
+
+const diff7786ad3 = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index 7786ad3
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,47 +1,46 @@
+       def handle(t: HttpExchange): Unit = {
+-        val stateAndResponse: Try[(String, Map[String, String], String)] = Try {
+-          val obj: LinkedHashMap[String, Value]                 = read[ujson.Obj](t.getRequestBody).obj
+-          val maybeParams: Option[LinkedHashMap[String, Value]] = obj.get("params").flatMap(_.objOpt)
+-          // This needs work.
+-          val params: Map[String, String] = maybeParams
+-            .map(_.toMap)
+-            .map {
+-              _.map { case (key, value) =>
+-                key -> value.strOpt.getOrElse(value.toString())
+-              }.toMap
+-            }
+-            .getOrElse(Map.empty[String, String])
+-
+-          // should return the params in the response body to be used with the generators
+-          val body: String = maybeParams
+-            .map { ps =>
+-              write(ujson.Obj.from(ps))
+-            }
+-            .getOrElse("{}")
+-
+-          (obj.get("state").map(_.str).getOrElse(""), params, body)
+-        }
+-
+-        val stateChangeMaybeApplied = stateAndResponse.flatMap { case (s, ps, _) =>
++        val stateAndParams: Try[(String, Option[LinkedHashMap[String, Value]])] =
+           Try {
+-            // Apply before hook
+-            stateChangeBeforeHook.apply()
+-            // Apply state change function
+-            stateChange
+-              .lift(ProviderState(s, ps))
+-              .getOrElse(
+-                pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
+-              )
++            val obj: LinkedHashMap[String, Value]                 = read[ujson.Obj](t.getRequestBody).obj
++            val state                                             = obj.get("state").map(_.str).getOrElse("")
++            val maybeParams: Option[LinkedHashMap[String, Value]] = obj.get("params").flatMap(_.objOpt)
++
++            (state, maybeParams)
+           }
+-        }
++
++        val stateChangeMaybeApplied: Try[Map[String, Value]] =
++          stateAndParams.flatMap { case (s, maybeParams) =>
++            Try {
++              // Apply before hook
++              stateChangeBeforeHook.apply()
++              val params: Map[String, String] =
++                maybeParams
++                  .map {
++                    _.map { case (key, value) =>
++                      key -> value.strOpt.getOrElse(value.toString())
++                    }.toMap
++                  }
++                  .getOrElse(Map.empty[String, String])
++              // Apply state change function
++              val result: Map[String, String] =
++                stateChange
++                  .lift(ProviderState(s, params))
++                  .getOrElse {
++                    pact4sLogger.warn(
++                      s"No state change definition was provided for received state $s with parameters $params"
++                    )
++                    Map.empty
++                  }
++              val jsonResult: Map[String, Value] = result.map { case (k, v) => (k, ujson.Str(v)) }
++              maybeParams.fold(jsonResult)(_.toMap ++ jsonResult)
++            }
++          }
+         stateChangeMaybeApplied match {
+           case Failure(exception) =>
+             pact4sLogger.error(exception)("State change application failed.")
+             sendResponse(t, "{}", 400)
+-          case Success(_) =>
+-            val responseBody: String = stateAndResponse
+-              .map(_._3)
+-              .getOrElse("{}")
+-            sendResponse(t, responseBody, 200)
++          case Success(result) =>
++            val body = if (result.nonEmpty) write(ujson.Obj.from(result)) else "{}"
++            sendResponse(t, body, 200)
+         }
+       }
+
+
+`;
+addListener('7786ad3', diff7786ad3);
+
+
+const diffed49b11 = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index ed49b11
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -0,0 +1,13 @@
++      def handle(t: HttpExchange): Unit = {
++        Try {
++          val parser = Json.createParser(t.getRequestBody)
++          parser.next()
++          val obj         = parser.getObject
++          val maybeParams = Option(obj.getJsonObject("params"))
++          val params: Map[String, String] = maybeParams
++            .map(_.entrySet().asScala.map(kv => kv.getKey -> kv.getValue.toString).toMap)
++            .getOrElse(Map.empty)
++          (obj.getString("state"), params)
++        }.toOption.map { case (s, ps) => ProviderState(s, ps) }.flatMap(stateChange.lift).getOrElse(())
++        sendResponse(t)
++      }
+
+
+`;
+addListener('ed49b11', diffed49b11);
+
+
+const diff80650f4 = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index 80650f4
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,25 +1,29 @@
+       def handle(t: HttpExchange): Unit = {
+         var responseBody = ""
+         Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+-            .map(_.entrySet().asScala.map { kv =>
+-              val key   = kv.getKey
+-              val value = kv.getValue
+-              val fixedValue = value.getValueType match {
+-                case JsonValue.ValueType.STRING => value.toString.init.tail
+-                case _                          => value.toString
+-              }
+-              key -> fixedValue
+-            }.toMap)
++            .map(
++              _.entrySet().asScala
++                .map { kv =>
++                  val key   = kv.getKey
++                  val value = kv.getValue
++                  val fixedValue = value.getValueType match {
++                    case JsonValue.ValueType.STRING => value.toString.init.tail
++                    case _                          => value.toString
++                  }
++                  key -> fixedValue
++                }
++                .toMap
++            )
+             .getOrElse(Map.empty)
+           // should return the params in the response body to be used with the generators
+           responseBody = "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}"
+           (obj.getString("state"), params)
+         }.toOption.map { case (s, ps) => ProviderState(s, ps) }.flatMap(stateChange.lift).getOrElse(())
+         sendResponse(t, responseBody)
+       }
+
+
+`;
+addListener('80650f4', diff80650f4);
+
+
+const diffac665fa = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index ac665fa
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,29 +1,44 @@
+       def handle(t: HttpExchange): Unit = {
+-        var responseBody = ""
+-        Try {
++        val stateAndResponse: Option[(String, Map[String, String], String)] = Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+             .map(
+               _.entrySet().asScala
+                 .map { kv =>
+                   val key   = kv.getKey
+                   val value = kv.getValue
+                   val fixedValue = value.getValueType match {
+                     case JsonValue.ValueType.STRING => value.toString.init.tail
+                     case _                          => value.toString
+                   }
+                   key -> fixedValue
+                 }
+                 .toMap
+             )
+             .getOrElse(Map.empty)
+           // should return the params in the response body to be used with the generators
+-          responseBody = "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}"
+-          (obj.getString("state"), params)
+-        }.toOption.map { case (s, ps) => ProviderState(s, ps) }.flatMap(stateChange.lift).getOrElse(())
+-        sendResponse(t, responseBody)
++          (obj.getString("state"), params, "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}")
++        }.toOption
++
++        val stateChangeMaybeApplied = Try(stateAndResponse.foreach { case (s, ps, _) =>
++          stateChange
++            .lift(ProviderState(s, ps))
++            .getOrElse(
++              pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
++            )
++        })
++        stateChangeMaybeApplied match {
++          case Failure(exception) =>
++            pact4sLogger.error(exception)("State change application failed.")
++            sendResponse(t, "{}", 400)
++          case Success(_) =>
++            val responseBody: String = stateAndResponse
++              .map(_._3)
++              .getOrElse("{}")
++            sendResponse(t, responseBody, 200)
++        }
+       }
+
+
+`;
+addListener('ac665fa', diffac665fa);
+
+
+const diff924df96 = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index 924df96
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,47 +1,49 @@
+       def handle(t: HttpExchange): Unit = {
+         val stateAndResponse: Option[(String, Map[String, String], String)] = Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+             .map(
+               _.entrySet().asScala
+                 .map { kv =>
+                   val key   = kv.getKey
+                   val value = kv.getValue
+                   val fixedValue = value.getValueType match {
+                     case JsonValue.ValueType.STRING => value.toString.init.tail
+                     case _                          => value.toString
+                   }
+                   key -> fixedValue
+                 }
+                 .toMap
+             )
+             .getOrElse(Map.empty)
+           // should return the params in the response body to be used with the generators
+           (obj.getString("state"), params, "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}")
+         }.toOption
+
+         val stateChangeMaybeApplied = Try(stateAndResponse.foreach { case (s, ps, _) =>
+           // Apply before hook
+           stateChangeBeforeHook.apply()
+           // Apply state change function
+           stateChange
+             .lift(ProviderState(s, ps))
+             .getOrElse(
+               pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
+             )
++          // Apply after hook
++          stateChangeAfterHook.apply()
+         })
+         stateChangeMaybeApplied match {
+           case Failure(exception) =>
+             pact4sLogger.error(exception)("State change application failed.")
+             sendResponse(t, "{}", 400)
+           case Success(_) =>
+             val responseBody: String = stateAndResponse
+               .map(_._3)
+               .getOrElse("{}")
+             sendResponse(t, responseBody, 200)
+         }
+       }
+
+
+`;
+addListener('924df96', diff924df96);
+
+
+const diffccffb9c = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index ccffb9c
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,13 +1,22 @@
+       def handle(t: HttpExchange): Unit = {
+         Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
++          // This needs work.
+           val params: Map[String, String] = maybeParams
+-            .map(_.entrySet().asScala.map(kv => kv.getKey -> kv.getValue.toString).toMap)
++            .map(_.entrySet().asScala.map { kv =>
++              val key   = kv.getKey
++              val value = kv.getValue
++              val fixedValue = value.getValueType match {
++                case JsonValue.ValueType.STRING => value.toString.init.tail
++                case _                          => value.toString
++              }
++              key -> fixedValue
++            }.toMap)
+             .getOrElse(Map.empty)
+           (obj.getString("state"), params)
+         }.toOption.map { case (s, ps) => ProviderState(s, ps) }.flatMap(stateChange.lift).getOrElse(())
+         sendResponse(t)
+       }
+
+
+`;
+addListener('ccffb9c', diffccffb9c);
+
+
+const diff57313c3 = `diff --git --- a/shared/src/main/scala/pact4s/StateChanger.scala b/shared/src/main/scala/pact4s/StateChanger.scala
+index 57313c3
+--- shared/src/main/scala/pact4s/StateChanger.scala
++++ shared/src/main/scala/pact4s/StateChanger.scala
+@@ -1,44 +1,47 @@
+       def handle(t: HttpExchange): Unit = {
+         val stateAndResponse: Option[(String, Map[String, String], String)] = Try {
+           val parser = Json.createParser(t.getRequestBody)
+           parser.next()
+           val obj         = parser.getObject
+           val maybeParams = Option(obj.getJsonObject("params"))
+           // This needs work.
+           val params: Map[String, String] = maybeParams
+             .map(
+               _.entrySet().asScala
+                 .map { kv =>
+                   val key   = kv.getKey
+                   val value = kv.getValue
+                   val fixedValue = value.getValueType match {
+                     case JsonValue.ValueType.STRING => value.toString.init.tail
+                     case _                          => value.toString
+                   }
+                   key -> fixedValue
+                 }
+                 .toMap
+             )
+             .getOrElse(Map.empty)
+           // should return the params in the response body to be used with the generators
+           (obj.getString("state"), params, "{" + params.map { case (k, v) => s""""$k": "$v"""" }.mkString(",") + "}")
+         }.toOption
+
+         val stateChangeMaybeApplied = Try(stateAndResponse.foreach { case (s, ps, _) =>
++          // Apply before hook
++          stateChangeBeforeHook.apply()
++          // Apply state change function
+           stateChange
+             .lift(ProviderState(s, ps))
+             .getOrElse(
+               pact4sLogger.warn(s"No state change definition was provided for received state $s with parameters $ps")
+             )
+         })
+         stateChangeMaybeApplied match {
+           case Failure(exception) =>
+             pact4sLogger.error(exception)("State change application failed.")
+             sendResponse(t, "{}", 400)
+           case Success(_) =>
+             val responseBody: String = stateAndResponse
+               .map(_._3)
+               .getOrElse("{}")
+             sendResponse(t, responseBody, 200)
+         }
+       }
+
+
+`;
+addListener('57313c3', diff57313c3);
+</script><body><h1>pact4s - handle</h1><div id="managerTable"><table><tr><th>Date</th><th>Author</th><th>Commit</th><th>File</th><th>Type</th><th>Diff</th></tr><tr class="datarow"><td>Thu Jan 16 00:24:54 GMT 2025</td><td><link href="https://github.com/search?q=Aliaksandr+Baranouski&amp;type=Users">Aliaksandr Baranouski</link></td><td>7786ad3</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="7786ad3"></div></td></tr><tr class="datarow"><td>Tue Oct 08 00:25:51 BST 2024</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>cc02492</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="cc02492"></div></td></tr><tr class="datarow"><td>Mon Apr 22 00:14:51 BST 2024</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>69c597d</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="69c597d"></div></td></tr><tr class="datarow"><td>Sun Mar 05 13:45:50 GMT 2023</td><td><link href="https://github.com/search?q=Gaël+Jourdan-Weil&amp;type=Users">Gaël Jourdan-Weil</link></td><td>c13ea5c</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="c13ea5c"></div></td></tr><tr class="datarow"><td>Sat Feb 25 16:05:32 GMT 2023</td><td><link href="https://github.com/search?q=Gaël+Jourdan-Weil&amp;type=Users">Gaël Jourdan-Weil</link></td><td>924df96</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="924df96"></div></td></tr><tr class="datarow"><td>Wed Feb 15 16:02:36 GMT 2023</td><td><link href="https://github.com/search?q=Gaël+Jourdan-Weil&amp;type=Users">Gaël Jourdan-Weil</link></td><td>57313c3</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="57313c3"></div></td></tr><tr class="datarow"><td>Wed Aug 17 14:16:34 BST 2022</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>ac665fa</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="ac665fa"></div></td></tr><tr class="datarow"><td>Sun Jun 26 19:58:12 BST 2022</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>80650f4</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="80650f4"></div></td></tr><tr class="datarow"><td>Wed May 25 18:59:09 BST 2022</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>66b0acc</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="66b0acc"></div></td></tr><tr class="datarow"><td>Tue Feb 08 16:01:23 GMT 2022</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>ccffb9c</td><td>StateChanger.scala</td><td>Body</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="ccffb9c"></div></td></tr><tr class="datarow"><td>Sun Jan 02 22:30:44 GMT 2022</td><td><link href="https://github.com/search?q=jbwheatley&amp;type=Users">jbwheatley</link></td><td>ed49b11</td><td>StateChanger.scala</td><td>Introduction</td><td><button class="accordion">Code</button></td></tr><tr><td class="panel" colspan="6"><div id="ed49b11"></div></td></tr></table></div><script>
+    var acc = document.getElementsByClassName("accordion");
+    var i;
+
+    for (i = 0; i < acc.length; i++) {
+      acc[i].addEventListener("click", function() {
+        /* Toggle between adding and removing the "active" class,
+        to highlight the button that controls the panel */
+        this.classList.toggle("active");
+
+        /* Toggle between hiding and showing the active panel */
+        var panel = this.parentNode.parentNode.nextElementSibling.cells[0];
+        if (panel.style.visibility === "visible") {
+          panel.style.visibility = "collapse";
+        } else {
+          panel.style.visibility = "visible";
+        }
+      });
+    } </script></body></html>
