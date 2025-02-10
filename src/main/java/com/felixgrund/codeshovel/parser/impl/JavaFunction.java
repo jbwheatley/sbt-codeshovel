@@ -175,8 +175,6 @@ public class JavaFunction extends AbstractFunction<MethodDeclaration> implements
 	/**
 	 * @return all the annotation of a method
 	 * Source Code Example:
-	 * @Override
-	 * @Test
 	 * public void foo() {}
 	 * This will return "@Override,@Test" since foo has two annotations @Test and @Override
 	 * */

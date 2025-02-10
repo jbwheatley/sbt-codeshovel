@@ -27,7 +27,6 @@ lazy val root = (project in file("."))
   .enablePlugins(SbtPlugin)
   .settings(
     name                         := "sbt-codeshovel",
-    packageDoc / publishArtifact := false,
     libraryDependencies ++= Seq(
       "org.eclipse.jgit"        % "org.eclipse.jgit"              % "7.1.0.202411261347-r",
       "com.google.code.gson"    % "gson"                          % "2.12.1",

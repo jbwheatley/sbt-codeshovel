@@ -72,7 +72,7 @@ public interface Yparser {
 	 * @param commit Commit
 	 * @param compareFunction Method
 	 * @return Set of major changes
-	 * @throws Exception
+	 * @throws java.lang.Exception
 	 */
 	List<Ysignaturechange> getMajorChanges(Ycommit commit, Yfunction compareFunction) throws Exception;
 
@@ -82,7 +82,7 @@ public interface Yparser {
 	 * @param commit Commit
 	 * @param compareFunction Method
 	 * @return Set of minor changes
-	 * @throws Exception
+	 * @throws java.lang.Exception
 	 */
 	List<Ychange> getMinorChanges(Ycommit commit, Yfunction compareFunction) throws Exception;
 
