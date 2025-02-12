@@ -4,6 +4,11 @@
 
 "Take this shovel to dig in source code history for changes to specific methods and functions."
 
+* [Getting Started](#getting-started)
+* [Usage](#usage)
+* [Use with other build tools (Mill, Bazel)](#use-with-other-build-tools-mill-bazel)
+* [Background](#background)
+
 ## Getting Started
 
 `sbt-codeshovel` is available through Maven Central. 
@@ -39,6 +44,26 @@ shovel shared/src/main/scala/pact4s/StateChanger.scala handle 68 HEAD
 A `.html` file will then be produced and placed in the `/target` directory (e.g. `/target/shovel-handle-68-HEAD.html`). Opening this in your 
 browser will allow you to browse the git history for the supplied method. [Check the example here.](./doc/example.html)
 
+## Use with other build tools (Mill, Bazel)
+
+The core functionality of codeshovel is released as its own standalone library to be used with other build tools: 
+
+```scala
+"io.github.jbwheatley" %% "codeshovel" % xxx
+```
+
+The method `codeshovel.Execution.run` can be used to produce the html document: 
+
+```scala
+run(
+  repositoryName = "pact4s",
+  baseDir = "/Users/jbwheatley/pact4s",
+  filePath = "shared/src/main/scala/pact4s/StateChanger.scala",
+  functionName = "handle",
+  startLine = 68,
+  startCommitName = "HEAD"
+)
+```
 
 ## Background
 
