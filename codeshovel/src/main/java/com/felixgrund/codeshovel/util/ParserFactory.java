@@ -9,8 +9,8 @@ import com.felixgrund.codeshovel.parser.impl.TypeScriptParser;
 import com.felixgrund.codeshovel.wrappers.Commit;
 import com.felixgrund.codeshovel.wrappers.StartEnvironment;
 import org.apache.commons.codec.digest.DigestUtils;
-import sbt.codeshovel.ScalaParser;
-import sbt.codeshovel.ScalaParser$;
+import codeshovel.ScalaParser;
+import codeshovel.ScalaParser$;
 
 import java.util.HashMap;
 import java.util.Map;

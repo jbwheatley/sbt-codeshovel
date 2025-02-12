@@ -1,4 +1,4 @@
-package sbt.codeshovel
+package codeshovel
 
 import com.felixgrund.codeshovel.changes.Ychange
 import com.felixgrund.codeshovel.entities.Ycommit
@@ -6,14 +6,14 @@ import com.felixgrund.codeshovel.exceptions.ParseException
 import com.felixgrund.codeshovel.parser.{AbstractParser, Yfunction, Yparser}
 import com.felixgrund.codeshovel.util.Utl
 import com.felixgrund.codeshovel.wrappers.{Commit, StartEnvironment}
-import sbt.codeshovel.ScalaParser.ACCEPTED_FILE_EXTENSION
+import codeshovel.ScalaParser.ACCEPTED_FILE_EXTENSION
 
 import java.util
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 import scala.meta.Defn.Def
 import scala.meta.parsers.Parsed
-import scala.meta.{ParseException as _, *}
+import scala.meta.{ParseException => _, _}
 
 class ScalaParser(startEnv: StartEnvironment, filePath: String, fileContent: String, commit: Commit)
     extends AbstractParser(startEnv, filePath, fileContent, commit)

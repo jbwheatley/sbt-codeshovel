@@ -1,15 +1,16 @@
-package sbt.codeshovel
+package codeshovel
 
 import com.felixgrund.codeshovel.entities.{Yexceptions, Ymodifiers, Yparameter}
 import com.felixgrund.codeshovel.parser.{AbstractFunction, Yfunction}
 import com.felixgrund.codeshovel.wrappers.Commit
 
 import java.util
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 import scala.meta.Defn.Def
 import scala.meta.Member.Term
 import scala.meta.Mod.Annot
 import scala.meta.contrib.AssociatedComments
+import scala.meta._
 
 class ScalaFunction(method: Def, commit: Commit, sourceFilePath: String, sourceFileContent: String)
     extends AbstractFunction[Def](

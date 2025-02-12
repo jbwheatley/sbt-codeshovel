@@ -18,7 +18,7 @@ import com.github.javaparser.ParserConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sbt.codeshovel.HtmlWriter;
+import codeshovel.HtmlWriter;
 
 import java.nio.file.Path;
 import java.util.*;

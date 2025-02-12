@@ -11,17 +11,17 @@ node_modules/
 *.iws
 
 # Private sources
-src/test/java/com/felixgrund/codeshovel/priv/
+codeshovel/src/test/java/com/felixgrund/codeshovel/priv/
 
 # Private oracles
-src/test/resources/oracles/java2/
+codeshovel/src/test/resources/oracles/java2/
 
 misc/stubs-generator/csv/
 misc/stubs-generator/output/
 
 # Antlr
-src/main/antlr4
-src/main/java/*ParseTree
+codeshovel/src/main/antlr4
+codeshovel/src/main/java/*ParseTree
 
 # Misc
 .DS_Store

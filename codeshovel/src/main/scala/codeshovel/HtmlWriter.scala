@@ -1,13 +1,13 @@
-package sbt.codeshovel
+package codeshovel
 
-import com.felixgrund.codeshovel.changes.*
+import com.felixgrund.codeshovel.changes._
 import com.felixgrund.codeshovel.json.JsonResult
 import org.scalameta.collections.XtensionJavaList
 import scalatags.Text
-import scalatags.Text.all.*
+import scalatags.Text.all._
 
 import java.nio.file.{Files, Path, StandardOpenOption}
-import scala.jdk.CollectionConverters.mapAsScalaMapConverter
+import scala.jdk.CollectionConverters._
 
 object HtmlWriter {
   private def diffString(hash: String, change: Ychange): String =
@@ -230,7 +230,7 @@ object HtmlWriter {
             case None        => ""
           }
       }
-    case _: Ynochange => ""
+    case _ => ""
   }).split("/").last
 
   def changeType(change: Ychange): String = change match {
@@ -241,6 +241,7 @@ object HtmlWriter {
           ycrossfilechange match {
             case _: Yfilerename   => "File Rename"
             case _: Ymovefromfile => "Move From File"
+            case _                => ""
           }
         case ysignaturechange: Ysignaturechange =>
           ysignaturechange match {
@@ -249,7 +250,9 @@ object HtmlWriter {
             case _: Yparameterchange  => "Parameter"
             case _: Yrename           => "Rename"
             case _: Yreturntypechange => "Return"
+            case _                    => ""
           }
+        case _ => ""
       }
     case _: Yintroduced  => "Introduction"
     case _: Ymultichange => "Multiple"
@@ -292,7 +295,7 @@ object HtmlWriter {
           td(button(diffText(change), `class` := "accordion"))
         ) :: tr(td(`class` := "panel", colspan := 6, div(id := commitHash.take(7)))) :: Nil
     }
-    div(id := "managerTable")(table((headers :: rows)*))
+    div(id := "managerTable")(table((headers :: rows): _*))
   }
 
   def write(result: JsonResult, file: Path): Unit = {
